@@ -1,0 +1,1 @@
+# autonomous-bot-for-mining
