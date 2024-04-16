@@ -1,0 +1,547 @@
+#include "HX711.h"
+const int dout =2;
+const int sck =3;
+HX711 scale;
+float p;
+int flotv;
+float kg;
+
+int send1;
+#include <LiquidCrystal.h>
+const int rs = 13, en = 12, d4 = 11, d5 = 10, d6 = 9, d7 = 8;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+  
+#include "DHT.h"    
+#define DHTPIN A3 
+#define DHTTYPE DHT11 
+DHT dht ( DHTPIN, DHTTYPE ) ;
+
+#define mq21 A2
+#define mq71 A1
+#define mq41 A0
+
+int humidity,temp;
+int mq2,mq7,mq4;
+
+void setup() {
+ 
+Serial.begin(9600);
+//Serial.println("setup1-----------------: ");
+lcd.begin(16, 2);   
+//Serial.println("setup2-----------------: ");
+pinMode(mq21,INPUT);
+pinMode(mq71,INPUT);
+pinMode(mq41,INPUT);
+//Serial.println("setup3-----------------: ");
+dht.begin (  ) ;  
+//Serial.println("setup4-----------------: ");
+scale.begin(dout, sck);
+scale.read();
+scale.read_average(20);
+scale.get_value(5);
+(scale.get_units(5), 1);
+scale.set_scale(2280.f);
+scale.tare();
+scale.read();
+scale.read_average(20); 
+scale.get_value(5);
+(scale.get_units(5), 1);
+//Serial.println("setup5-----------------: ");  
+lcd.setCursor(0, 0); 
+lcd.print("COAL MINES IOT                    "); 
+lcd.setCursor(0, 1);
+lcd.print("USING MODEL                         ");
+delay(2000);
+lcd.clear(); 
+//Serial.println("setup6-----------------: ");
+}
+
+void loop() 
+{  
+  
+humidity = dht.readHumidity ( ) ;  
+temp = dht.readTemperature ( ) ; 
+
+mq2=analogRead(mq21);
+mq7=analogRead(mq71);
+mq4=analogRead(mq41);
+
+mq2=map(mq2,0,1024,0,100);
+mq7=map(mq7,0,1024,0,100);
+mq4=map(mq4,0,1024,0,100);
+
+//Serial.print("mq2-----------------: ");
+//Serial.println(mq2);
+
+
+
+
+
+
+
+(scale.get_units(), 1);
+p = scale.get_units(10);
+//Serial.print("p:");
+//Serial.println(p);
+(p, 1);
+   
+kg=(p/46);
+if(kg<=0){kg=(kg*(-1));}
+ 
+if(kg<0.1){kg=0;}
+scale.power_down();           
+delay(1000);
+scale.power_up();
+  if(kg<0)
+  {
+    kg=0;
+  }
+
+
+      
+if(mq2<25)
+{
+  mq2=0;
+}
+
+if(mq4<60)
+{
+  mq4=0;
+}
+
+if(mq7<5)
+{
+  mq7=0;
+}
+
+Serial.println("  ");
+Serial.print("kg:");
+Serial.println(kg);
+
+Serial.print("TEMPERATURE : ");
+Serial.println(temp);
+
+Serial.print("METHANE: ");
+Serial.println(mq4);
+
+Serial.print("CO: ");
+Serial.println(mq7);
+
+Serial.print("SMOKE : ");
+Serial.println(mq2);
+
+
+
+lcd.setCursor(0,0);lcd.print("T:");
+if(temp <= 9){lcd.print("00");lcd.print(temp);}
+else if(temp <= 99){lcd.print("0");lcd.print(temp);}
+else if(temp <= 999){lcd.print(temp);}
+
+lcd.setCursor(0,1);lcd.print("S:");
+if(mq2 <= 9){lcd.print("00");lcd.print(mq2);}
+else if(mq2 <= 99){lcd.print("0");lcd.print(mq2);}
+else if(mq2 <= 999){lcd.print(mq2);}
+
+
+lcd.setCursor(6,1);lcd.print("M:");
+if(mq4 <= 9){lcd.print("00");lcd.print(mq4);}
+else if(mq4 <= 99){lcd.print("0");lcd.print(mq4);}
+else if(mq4 <= 999){lcd.print(mq4);}
+
+
+lcd.setCursor(6,0);lcd.print("Co:");
+if(mq7 <= 9){lcd.print("00");lcd.print(mq7);}
+else if(mq7 <= 99){lcd.print("0");lcd.print(mq7);}
+else if(mq7 <= 999){lcd.print(mq7);}
+
+
+
+//lcd.setCursor(10,1);lcd.print("W:");
+//if(kg <= 9){lcd.print("00");lcd.print(kg);}
+//else if(kg <= 99){lcd.print("0");lcd.print(kg);}
+//else if(kg<= 999){lcd.print(kg);}
+
+if(mq2>70)
+{
+  Serial.println("SMOKE LEVEL HIGH  ");
+  lcd.setCursor(0, 0); 
+lcd.print("SMOKE LEVEL             "); // You can make spaces using well... spaces
+lcd.setCursor(0, 1); // Or setting the cursor in the desired position.
+lcd.print("HIGH                     ");
+delay(2000);
+lcd.clear(); 
+}
+if(mq4>90)
+{
+   Serial.println("METHANE LEVEL HIGH  ");
+    lcd.setCursor(0, 0); 
+lcd.print("METHANE LEVEL              "); // You can make spaces using well... spaces
+lcd.setCursor(0, 1); // Or setting the cursor in the desired position.
+lcd.print("HIGH                     ");
+delay(2000);
+lcd.clear(); 
+}
+if(mq7>70)
+{
+  Serial.println("CARBON MONOXIDE LEVEL HIGH  ");
+    lcd.setCursor(0, 0); 
+lcd.print("CARBON MONOXIDE             "); // You can make spaces using well... spaces
+lcd.setCursor(0, 1); // Or setting the cursor in the desired position.
+lcd.print("LEVEL HIGH                     ");
+delay(2000);
+lcd.clear(); 
+}
+
+send1=kg*100;
+senddata();
+delay(500);
+}
+void senddata()
+{
+  Serial.print('#');
+
+if(mq2<= 9){Serial.print("00");Serial.print(mq2);}
+else if(mq2<= 99){Serial.print("0");Serial.print(mq2);}
+else if(mq2 <= 999){Serial.print(mq2);}
+
+if(mq7 <= 9){Serial.print("00");Serial.print(mq7 );}
+else if(mq7 <= 99){Serial.print("0");Serial.print(mq7 );}
+else if(mq7 <= 999){Serial.print(mq7);}
+
+if(mq4<= 9){Serial.print("00");Serial.print(mq4);}
+else if(mq4<= 99){Serial.print("0");Serial.print(mq4);}
+else if(mq4<= 999){Serial.print(mq4);}
+
+if(temp<= 9){Serial.print("00");Serial.print(temp);}
+else if(temp<= 99){Serial.print("0");Serial.print(temp);}
+else if(temp<= 999){Serial.print(temp);}
+
+
+if( send1<=9){Serial.print("000"); Serial.print( send1);}
+else if( send1 <=99){Serial.print("00"); Serial.print(send1);}
+else if( send1 <=999){Serial.print("0");Serial.print( send1);}
+else if( send1 <=9999){Serial.print( send1);}
+
+delay(500);
+}
+[16/04, 6:21 pm] Bill Copy: arduino code
+[16/04, 6:21 pm] Bill Copy: //e2635iot@awgarstone.com
+//Info@2024
+
+
+   #include <TinyGPS++.h>
+#include <SoftwareSerial.h>
+/* Create object named bt of the class SoftwareSerial */
+SoftwareSerial GPS_SoftSerial(D3, D4);/* (Rx, Tx) */
+/* Create an object named gps of the class TinyGPSPlus */
+TinyGPSPlus gps;     
+volatile float minutes, seconds;
+volatile int degree, secs, mins;
+float latn,longn;
+
+
+     double lat_val, lng_val, alt_m_val;
+        uint8_t hr_val, min_val, sec_val;
+        bool loc_valid, alt_valid, time_valid;
+        
+String inputString = ""; 
+String s = "www.google.com/maps/dir/";
+
+#define BLYNK_TEMPLATE_ID "TMPL3KdEr41qs"
+#define BLYNK_TEMPLATE_NAME "COAL MINES IOT  USING MODEL"
+#define BLYNK_AUTH_TOKEN "yFPsNJZjnolq4yHdiw8HjoO3FKeKnAjE"
+
+char auth[] = BLYNK_AUTH_TOKEN;
+
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+
+int R1 = D0;
+int R2 = D5;
+int R3 = D6;
+int R4 = D7;
+
+
+//int v=1;
+// Your WiFi credentials.
+// Set password to "" for open networks.
+
+float kg;
+
+char ssid[] = "IOT";
+char pass[] = "123456789";
+
+float f;
+unsigned char a[50];
+unsigned int val1,val2,val3,val4,val5,val6,val7,val8;
+unsigned int m = 0;
+unsigned char a1 = 0, a2 = 0, a3 = 0, a4 = 0,a5=0,a6=0,a7=0,a8=0;
+char inChar;
+int v=1;
+ int acc,vib;
+void setup() {
+
+
+  Serial.begin(9600);
+   pinMode(R1, OUTPUT);
+  pinMode(R2, OUTPUT);
+  pinMode(R3, OUTPUT);
+  pinMode(R4, OUTPUT);
+ 
+
+  GPS_SoftSerial.begin(9600);
+ Blynk.begin(auth, ssid, pass, "blynk.cloud", 80);
+}
+
+void loop() {
+ 
+  Blynk.run();
+  kg=(float)val5/100;
+  Serial.print("val1:");
+  Serial.println(val1);
+  Serial.print("val2:");
+  Serial.println(val2);
+  Serial.print("val3:");
+  Serial.println(val3);
+  Serial.print("val5:");
+  Serial.println( kg);
+  Blynk.virtualWrite(V4,"S: "+String(val1)+" CO: "+String(val2)+"M: "+String(val3)+"T: "+String(val4)+"W:"+String(kg));
+  
+  if(val1>70)
+{
+    Serial.print("val1:");
+  Blynk.virtualWrite(V2,"SMOKE  LEVEL HIGH");
+Blynk.logEvent("msg","SMOKE  LEVEL HIGH");
+
+}
+else if(val3>90)
+{
+  Blynk.virtualWrite(V2,"METHANE  LEVEL HIGH");
+Blynk.logEvent("msg","METHANE  LEVEL HIGH");
+
+}
+else if(val2>70)
+{
+Blynk.virtualWrite(V2,"CARBON MONOXIDE LEVEL HIGH");
+Blynk.logEvent("msg","CARBON MONOXIDE LEVEL HIGH");
+}
+else 
+{
+Blynk.virtualWrite(V2,"                                ");
+}
+smartDelay(1000); /* Generate precise delay of 1ms */
+        unsigned long start;
+   
+        lat_val = gps.location.lat(); /* Get latitude data */
+        loc_valid = gps.location.isValid(); /* Check if valid location data is available */
+        lng_val = gps.location.lng(); /* Get longtitude data */
+        alt_m_val = gps.altitude.meters();  /* Get altitude data in meters */
+        alt_valid = gps.altitude.isValid(); /* Check if valid altitude data is available */
+        hr_val = gps.time.hour(); /* Get hour */
+        min_val = gps.time.minute();  /* Get minutes */
+        sec_val = gps.time.second();  /* Get seconds */
+        time_valid = gps.time.isValid();  /* Check if valid time data is available */
+      
+            
+        if (!loc_valid)
+        {    
+                
+//          Serial.print("Latitude : ");
+//          Serial.println("***");
+//          Serial.print("Longitude : ");
+//          Serial.println("***");
+        }
+        else
+        {
+          DegMinSec(lat_val);
+//          Serial.print("Latitude in Decimal Degrees : ");
+//          Serial.println(lat_val, 6);
+//        
+//          Serial.print("Latitude in Degrees Minutes Seconds : ");
+//          Serial.print(degree);
+//          Serial.print("\t");
+//          Serial.print(mins);
+//          Serial.print("\t");
+//          Serial.println(secs);
+          DegMinSec(lng_val); /* Convert the decimal degree value into degrees minutes seconds form */
+//          Serial.print("Longitude in Decimal Degrees : ");
+//          Serial.println(lng_val, 6);
+          longn=(lng_val, 6);
+//          Serial.print("Longitude in Degrees Minutes Seconds : ");
+//          Serial.print(degree);
+//          Serial.print("\t");
+//          Serial.print(mins);
+//          Serial.print("\t");
+//          Serial.println(secs);
+        }
+        if (!alt_valid)
+        {
+//          Serial.print("Altitude : ");
+//          Serial.println("***");
+        }
+        else
+        {
+//          Serial.print("Altitude : ");
+//          Serial.println(alt_m_val, 6);    
+        }
+        if (!time_valid)
+        {
+//          Serial.print("Time : ");
+//          Serial.println("***");
+        }
+        else
+        {
+          char time_string[32];
+          sprintf(time_string, "Time : %02d/%02d/%02d \n", hr_val, min_val, sec_val);
+//          Serial.print(time_string);    
+        }
+   
+
+if(!alt_valid){lat_val=11.4970;lng_val=77.2771;}
+
+s = "www.google.com/maps/dir/";
+s += String(lat_val, 6);
+  s += ",";
+  s += String(lng_val, 6);
+  s += "/";
+   Blynk.virtualWrite(V3,s);
+
+
+receive_();
+}
+BLYNK_WRITE(V0) {
+  int button = param.asInt();
+  Serial.print("Button value :");
+  Serial.println(button);
+
+  if (button == 0) {
+    forward();
+  }
+  if (button == 1) {
+    stop();
+  }
+  if (button == 2) {
+    reverse();
+  }
+
+}
+
+
+BLYNK_WRITE(V1) {
+  int button = param.asInt();
+  Serial.print("Button value :");
+  Serial.println(button);
+
+  if (button == 0) {
+    left();
+  }
+  if (button == 1) {
+    stop();
+  }
+  if (button == 2) {
+    right();
+  }
+
+}
+
+
+void receive_()
+{
+
+
+  while (Serial.available()) {
+    // get the new byte:
+    inChar = (char)Serial.read();
+
+    a[m] = inChar;
+    if (a[0] == '#') 
+    {
+     if (m <= 16) {
+     m++;
+     }
+    }
+  }
+  m = 5;
+
+  if (m > 1)
+  {
+    val1 = (a[1]-0x30)*100 + (a[2]-0x30)*10  + (a[3] - 0x30);delay(100);
+    val2 = (a[4]-0x30)*100 + (a[5]-0x30)*10  + (a[6] - 0x30);delay(100);
+    val3 = (a[7]-0x30)*100 + (a[8]-0x30)*10  + (a[9] - 0x30);delay(100);
+    val4 = (a[10]-0x30)*100 + (a[11]-0x30)*10  + (a[12] - 0x30);delay(100);
+    val5 = (a[13]-0x30)*1000 + (a[14]-0x30)*100  + (a[15]-0x30)*10 +(a[16]-0X30);delay(100);
+    m = 0;
+   
+  }
+}
+void forward()
+{
+
+  Serial.println("forward");
+  digitalWrite(R1, HIGH);
+  digitalWrite(R2, LOW);
+  digitalWrite(R3, HIGH);
+  digitalWrite(R4, LOW);
+
+}
+
+void reverse()
+{
+  Serial.println("reverse");
+  digitalWrite(R1, LOW);
+  digitalWrite(R2, HIGH);
+  digitalWrite(R3, LOW);
+  digitalWrite(R4, HIGH);
+}
+
+void right()
+{
+  Serial.println("right");
+  digitalWrite(R1, LOW);
+  digitalWrite(R2, HIGH);
+  digitalWrite(R3, HIGH);
+  digitalWrite(R4, LOW);
+}
+
+void left()
+{
+  Serial.println("left");
+  digitalWrite(R1, HIGH);
+  digitalWrite(R2, LOW);
+  digitalWrite(R3, LOW);
+  digitalWrite(R4, HIGH);
+}
+
+void stop()
+{
+  Serial.println("STOP");
+  digitalWrite(R1, LOW);
+  digitalWrite(R2, LOW);
+  digitalWrite(R3, LOW);
+  digitalWrite(R4, LOW);
+}
+static void smartDelay(unsigned long ms)
+{
+  unsigned long start = millis();
+  do 
+  {
+    while (GPS_SoftSerial.available())  /* Encode data read from GPS while data is available on serial port */
+      gps.encode(GPS_SoftSerial.read());
+/* Encode basically is used to parse the string received by the GPS and to store it in a buffer so that information can be extracted from it */
+  } while (millis() - start < ms);
+}
+
+
+void DegMinSec( double tot_val)   /* Convert data in decimal degrees into degrees minutes seconds form */
+{  
+  degree = (int)tot_val;
+  minutes = tot_val - degree;
+  seconds = 60 * minutes;
+  minutes = (int)seconds;
+  mins = (int)minutes;
+  seconds = seconds - minutes;
+  seconds = 60 * seconds;
+  secs = (int)seconds;
+}
+
